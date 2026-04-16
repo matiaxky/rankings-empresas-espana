@@ -22,6 +22,11 @@ class Empresa(Base):
     fuente = Column(String)  # fuente de los datos
     publicidad_verificada = Column(String, default="estimación")  # "real" o "estimación"
 
+    # Nuevos campos de calidad / trazabilidad
+    data_quality_score = Column(Float, default=0.0)  # 0-100
+    fuente_publicidad = Column(String, nullable=True)  # fuente específica del dato publicitario
+    fecha_ultima_actualizacion = Column(DateTime, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -36,4 +41,11 @@ class Empresa(Base):
             "inversion_publicidad": self.inversion_publicidad,
             "empleados": self.empleados,
             "fuente": self.fuente,
+            "publicidad_verificada": self.publicidad_verificada,
+            "data_quality_score": self.data_quality_score,
+            "fuente_publicidad": self.fuente_publicidad,
+            "fecha_ultima_actualizacion": (
+                self.fecha_ultima_actualizacion.isoformat()
+                if self.fecha_ultima_actualizacion else None
+            ),
         }

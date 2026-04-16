@@ -13,8 +13,9 @@ def main():
     print("📊 Rankings Empresas España")
     print("=" * 50)
 
-    # Inicializar BD si no existe
-    db_path = "app/empresas.db"
+    # Inicializar BD si no existe (la BD está en la raíz del proyecto)
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    db_path = "empresas.db"
     if not os.path.exists(db_path):
         print("\n📦 Inicializando base de datos...")
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +30,6 @@ def main():
     print("\nPresiona Ctrl+C para detener\n")
 
     # Iniciar uvicorn
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     subprocess.run([sys.executable, "-m", "uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"])
 
 

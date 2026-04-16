@@ -653,6 +653,20 @@
             }
         }
 
+        // ── Quality badge ────────────────────────────────────────────────────────
+        function qualityDot(score) {
+            const s = (score == null) ? 0 : Number(score);
+            let color, label;
+            if (s >= 80)      { color = '#34d399'; label = 'Calidad alta'; }     // green
+            else if (s >= 50) { color = '#facc15'; label = 'Calidad media'; }    // yellow
+            else              { color = '#6b7280'; label = 'Calidad baja'; }     // gray
+            const title = `${label} · ${Math.round(s)}/100`;
+            return `<span class="quality-dot" title="${title}" aria-label="${title}" `
+                 + `style="display:inline-block;width:8px;height:8px;border-radius:50%;`
+                 + `background:${color};margin-right:6px;vertical-align:middle;">`
+                 + `</span>`;
+        }
+
         // ── Table ────────────────────────────────────────────────────────────────
         function actualizarTabla(data, tipo) {
             const tipo_label = tipo === 'facturacion' ? 'Facturación (M€)' : 'Inv. Publicidad (M€)';
@@ -677,6 +691,7 @@
                         }">${item.rank}</span>
                     </td>
                     <td class="px-5 py-3.5">
+                        ${qualityDot(item.empresa.data_quality_score)}
                         <span class="font-semibold text-white">${item.empresa.nombre}</span>
                         ${item.empresa.provincia ? `<span class="text-gray-600 text-xs ml-2">${item.empresa.provincia}</span>` : ''}
                     </td>
@@ -918,6 +933,8 @@
                 document.getElementById('modalEmpleados').textContent =
                     e.empleados ? e.empleados.toLocaleString('es-ES') : '—';
 
+                const qScore = (e.data_quality_score == null) ? 0 : Math.round(Number(e.data_quality_score));
+                const qLabel = qScore >= 80 ? 'alta' : (qScore >= 50 ? 'media' : 'baja');
                 const fields = [
                     ['CIF',              e.cif],
                     ['Comunidad',        e.comunidad_autonoma],
@@ -925,6 +942,7 @@
                     ['Año datos',        e.año_facturacion],
                     ['Fuente facturación', e.fuente],
                     ['Publicidad',       e.publicidad_verificada === 'real' ? 'Dato real (InfoAdex 2024)' : 'Estimación orientativa'],
+                    ['Calidad del dato', `${qScore}/100 (${qLabel})`],
                 ];
                 document.getElementById('modalFields').innerHTML = fields.map(([k, v]) => `
                     <div>

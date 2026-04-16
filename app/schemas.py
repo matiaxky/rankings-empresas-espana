@@ -16,6 +16,9 @@ class EmpresaBase(BaseModel):
     empleados: Optional[int] = None
     fuente: Optional[str] = None
     publicidad_verificada: Optional[str] = "estimación"  # "real" o "estimación"
+    data_quality_score: Optional[float] = 0.0
+    fuente_publicidad: Optional[str] = None
+    fecha_ultima_actualizacion: Optional[datetime] = None
 
 
 class EmpresaCreate(EmpresaBase):
@@ -59,9 +62,21 @@ class StatsResponse(BaseModel):
     facturacion_total: float
     año_facturacion_min: Optional[int] = None
     año_facturacion_max: Optional[int] = None
+    data_quality_score_avg: Optional[float] = None
 
 
 class ReloadResponse(BaseModel):
     status: str
     empresas_insertadas: int
     message: str
+
+
+class EnrichResponse(BaseModel):
+    status: str
+    empresas_antes: int
+    empresas_despues: int
+    nuevas: int
+    actualizadas: int = 0
+    publicidad_estimada: int = 0
+    data_quality_score_avg: float = 0.0
+    detalles: Optional[dict] = None

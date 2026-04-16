@@ -8,7 +8,8 @@ from app import models
 from app.database import engine, get_db
 from app.schemas import (
     EmpresaCreate, EmpresaResponse, RankingResponse,
-    SectorStats, ComunidadStats, StatsResponse, ReloadResponse
+    SectorStats, ComunidadStats, StatsResponse, ReloadResponse,
+    EnrichResponse,
 )
 
 # Crear tablas
@@ -53,6 +54,7 @@ async def get_stats(
     ).scalar() or 0
     año_min = base.with_entities(func.min(models.Empresa.año_facturacion)).scalar()
     año_max = base.with_entities(func.max(models.Empresa.año_facturacion)).scalar()
+    quality_avg = base.with_entities(func.avg(models.Empresa.data_quality_score)).scalar()
 
     return StatsResponse(
         total_empresas=total_empresas,
@@ -61,6 +63,7 @@ async def get_stats(
         facturacion_total=float(facturacion_total),
         año_facturacion_min=año_min,
         año_facturacion_max=año_max,
+        data_quality_score_avg=round(float(quality_avg), 2) if quality_avg is not None else None,
     )
 
 
@@ -266,6 +269,38 @@ async def reload_data(db: Session = Depends(get_db)):
             status="ok",
             empresas_insertadas=count,
             message=f"Base de datos recargada con {count} empresas."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/enrich", response_model=EnrichResponse)
+async def enrich_data(db: Session = Depends(get_db)):
+    """
+    Ejecuta el pipeline de enriquecimiento: scrapers + ETL + estimador
+    de publicidad. Devuelve conteos antes/después y métricas de calidad.
+
+    Ejecución sincrónica (en thread pool de FastAPI), ya que la mayor
+    parte del tiempo está en I/O HTTP a las fuentes externas. Si algún
+    scraper falla, el endpoint no aborta: registra el fallo y continúa.
+    """
+    try:
+        import asyncio
+        from app.management.refresh_data import refresh
+        # refresh() hace trabajo bloqueante (httpx sync + SQL); lo movemos
+        # a un thread para no ocupar el loop.
+        loop = asyncio.get_event_loop()
+        report = await loop.run_in_executor(None, refresh)
+
+        return EnrichResponse(
+            status="ok",
+            empresas_antes=report.empresas_antes,
+            empresas_despues=report.empresas_despues,
+            nuevas=report.nuevas,
+            actualizadas=report.actualizadas,
+            publicidad_estimada=report.publicidad_estimada,
+            data_quality_score_avg=report.data_quality_score_avg,
+            detalles=report.por_scraper,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
