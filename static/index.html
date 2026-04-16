@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rankings Empresas España</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            950: '#07070d',
+                            900: '#0d0d16',
+                            800: '#13131e',
+                            700: '#1a1a28',
+                            600: '#252538',
+                            500: '#32324a'
+                        },
+                        accent: {
+                            primary: '#7c3aed',
+                            secondary: '#0891b2',
+                            highlight: '#22d3ee'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(ellipse 120% 60% at 50% 0%, #1a0a3a 0%, #07070d 55%);
+            min-height: 100vh;
+        }
+
+        /* Glass cards */
+        .glass-card {
+            background: rgba(19, 19, 30, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+        }
+        .glass-card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.12);
+            border-color: rgba(124, 58, 237, 0.28);
+        }
+
+        /* Stat card color accents */
+        .stat-card-violet { border-top: 2px solid #7c3aed; }
+        .stat-card-emerald { border-top: 2px solid #10b981; }
+        .stat-card-cyan    { border-top: 2px solid #06b6d4; }
+        .stat-card-amber   { border-top: 2px solid #f59e0b; }
+
+        /* Header gradient */
+        .header-bg {
+            background: linear-gradient(160deg, #12082e 0%, #0d0d16 60%, #07070d 100%);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+        }
+
+        /* Rank badges */
+        .rank-1 { background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%); box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4); }
+        .rank-2 { background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%); box-shadow: 0 4px 14px rgba(148, 163, 184, 0.3); }
+        .rank-3 { background: linear-gradient(135deg, #fb923c 0%, #b45309 100%); box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35); }
+
+        /* Skeleton loader */
+        .skeleton {
+            background: linear-gradient(90deg, #1a1a28 25%, #252538 50%, #1a1a28 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.6s infinite;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinning { animation: spin 0.75s linear infinite; }
+
+        /* Fade in */
+        .fade-in {
+            animation: fadeIn 0.35s ease-out both;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 7px; height: 7px; }
+        ::-webkit-scrollbar-track { background: #0d0d16; }
+        ::-webkit-scrollbar-thumb { background: #32324a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f5a; }
+
+        /* Table */
+        .table-wrap { max-height: 560px; overflow-y: auto; }
+        .ranking-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #13131e;
+        }
+        .ranking-table tbody tr {
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+        .ranking-table tbody tr:nth-child(even) {
+            background: rgba(26, 26, 40, 0.5);
+        }
+        .ranking-table tbody tr:hover {
+            background: rgba(124, 58, 237, 0.1) !important;
+        }
+
+        /* Select styling */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px !important;
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed; inset: 0; z-index: 50;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .modal-content {
+            animation: modalIn 0.25s ease-out;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(12px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Error banner */
+        .error-banner {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #fca5a5;
+        }
+
+        /* Sector pill */
+        .sector-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            background: rgba(124, 58, 237, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            white-space: nowrap;
+        }
+
+        /* Chart container */
+        .chart-wrap { position: relative; width: 100%; }
+
+        /* Gradient bar in header KPIs */
+        .kpi-sep { width: 1px; background: rgba(124, 58, 237, 0.2); align-self: stretch; }
+    </style>
+</head>
+<body class="text-gray-100 font-sans">
+
+    <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+    <header class="header-bg relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-[600px] h-[400px] bg-violet-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="absolute bottom-0 left-[20%] w-[400px] h-[300px] bg-cyan-500/4 rounded-full blur-[80px] pointer-events-none"></div>
+
+        <div class="container mx-auto px-6 py-12 relative z-10">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                <!-- Title block -->
+                <div>
+                    <p class="text-violet-400 text-xs font-semibold tracking-widest uppercase mb-3">Dashboard Ejecutivo · España</p>
+                    <h1 class="font-display leading-tight">
+                        <span class="text-white text-4xl md:text-5xl font-semibold">Rankings de Empresas</span>
+                        <span class="block text-transparent bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-4xl md:text-5xl font-semibold mt-1" id="headerYear">2024</span>
+                    </h1>
+                    <p class="text-gray-500 mt-3 text-sm">
+                        Facturación, inversión publicitaria · Sector y Comunidad Autónoma · <span class="text-gray-600">Datos ejercicio fiscal 2024</span>
+                    </p>
+                </div>
+
+                <!-- Header KPIs + Actions -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <!-- KPIs pill -->
+                    <div class="glass-card rounded-xl px-5 py-3 flex items-center gap-5 text-sm">
+                        <div class="text-center">
+                            <div class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Empresas</div>
+                            <div id="headerEmpresas" class="font-display font-semibold text-white text-lg">
+                                <span class="skeleton w-8 h-5"></span>
+                            </div>
+                        </div>
+                        <div class="kpi-sep"></div>
+                        <div class="text-center">
+                            <div class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Sectores</div>
+                            <div id="headerSectores" class="font-display font-semibold text-white text-lg">
+                                <span class="skeleton w-6 h-5"></span>
+                            </div>
+                        </div>
+                        <div class="kpi-sep"></div>
+                        <div class="text-center">
+                            <div class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Facturación Total</div>
+                            <div id="headerFacturacion" class="font-display font-semibold text-violet-300 text-lg">
+                                <span class="skeleton w-20 h-5"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reload button -->
+                    <button id="btnRefresh" onclick="refreshData()" class="group glass-card rounded-xl px-5 py-3 flex items-center gap-2.5 text-sm font-medium text-gray-300 hover:text-white hover:border-violet-500/40 transition-all">
+                        <svg id="refreshIcon" class="w-4 h-4 text-violet-400 group-hover:text-violet-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Actualizar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════ ERROR BANNER ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mt-4 hidden" id="errorWrapper">
+        <div class="error-banner flex items-center gap-3">
+            <svg class="w-5 h-5 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span id="errorMessage" class="text-sm">Error al cargar datos. Comprueba que el servidor esté activo.</span>
+            <button onclick="document.getElementById('errorWrapper').classList.add('hidden')" class="ml-auto text-red-400 hover:text-red-200 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ FILTERS ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mt-6 mb-6">
+        <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-2 mb-5">
+                <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+                <h2 class="text-sm font-semibold text-white uppercase tracking-widest">Filtros</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Sector</label>
+                    <select id="filtroSector" class="w-full bg-dark-800 border border-dark-500 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 text-gray-200 transition">
+                        <option value="">Todos los sectores</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Comunidad Autónoma</label>
+                    <select id="filtroComunidad" class="w-full bg-dark-800 border border-dark-500 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 text-gray-200 transition">
+                        <option value="">Todas las CCAA</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Métrica</label>
+                    <select id="tipoRanking" class="w-full bg-dark-800 border border-dark-500 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 text-gray-200 transition">
+                        <option value="facturacion">Facturación</option>
+                        <option value="publicidad">Inversión en Publicidad</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Rango</label>
+                    <select id="topN" class="w-full bg-dark-800 border border-dark-500 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 text-gray-200 transition">
+                        <option value="10">Top 10</option>
+                        <option value="20">Top 20</option>
+                        <option value="50" selected>Top 50</option>
+                        <option value="100">Top 100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end">
+                <button onclick="aplicarFiltros()" class="bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white px-7 py-2.5 rounded-lg transition font-medium text-sm shadow-lg shadow-violet-900/40">
+                    Aplicar filtros
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ STAT CARDS ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mb-8">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <div class="glass-card glass-card-hover stat-card-violet rounded-2xl p-5 fade-in">
+                <div class="flex items-start justify-between mb-3">
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Empresas</span>
+                    <div class="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="statTotal" class="font-display text-3xl font-bold text-white">
+                    <span class="skeleton w-14 h-8"></span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1.5">en base de datos</p>
+            </div>
+
+            <div class="glass-card glass-card-hover stat-card-emerald rounded-2xl p-5 fade-in" style="animation-delay:0.05s">
+                <div class="flex items-start justify-between mb-3">
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Sectores</span>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="statSectores" class="font-display text-3xl font-bold text-emerald-400">
+                    <span class="skeleton w-10 h-8"></span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1.5">industrias cubiertas</p>
+            </div>
+
+            <div class="glass-card glass-card-hover stat-card-cyan rounded-2xl p-5 fade-in" style="animation-delay:0.1s">
+                <div class="flex items-start justify-between mb-3">
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Comunidades</span>
+                    <div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="statComunidades" class="font-display text-3xl font-bold text-cyan-400">
+                    <span class="skeleton w-10 h-8"></span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1.5">autonomías representadas</p>
+            </div>
+
+            <div class="glass-card glass-card-hover stat-card-amber rounded-2xl p-5 fade-in" style="animation-delay:0.15s">
+                <div class="flex items-start justify-between mb-3">
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Facturación Total</span>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="statFacturacion" class="font-display text-2xl font-bold text-amber-400">
+                    <span class="skeleton w-24 h-8"></span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1.5">millones de euros</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHARTS ROW 1 ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+            <!-- Top Companies (wider) -->
+            <div class="lg:col-span-3 glass-card rounded-2xl p-6 fade-in">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white uppercase tracking-widest">Top Empresas</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">por métrica seleccionada</p>
+                    </div>
+                    <span id="rankingLabel" class="text-xs text-violet-300 bg-violet-500/10 border border-violet-500/20 px-3 py-1 rounded-full font-medium">Top 10</span>
+                </div>
+                <div class="chart-wrap" style="height:320px">
+                    <canvas id="rankingChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Sector Doughnut (narrower) -->
+            <div class="lg:col-span-2 glass-card rounded-2xl p-6 fade-in" style="animation-delay:0.08s">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white uppercase tracking-widest">Por Sector</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">distribución de facturación</p>
+                    </div>
+                    <span class="text-xs text-gray-500">%</span>
+                </div>
+                <div class="chart-wrap" style="height:320px">
+                    <canvas id="sectorChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHARTS ROW 2 ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mb-8">
+        <div class="glass-card rounded-2xl p-6 fade-in" style="animation-delay:0.12s">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-widest">Por Comunidad Autónoma</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">facturación total en M€</p>
+                </div>
+            </div>
+            <div class="chart-wrap" style="height:320px">
+                <canvas id="comunidadChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ TABLE ═══════════════════════════════ -->
+    <div class="container mx-auto px-4 mb-14">
+        <div class="glass-card rounded-2xl overflow-hidden fade-in" style="animation-delay:0.16s">
+
+            <!-- Table toolbar -->
+            <div class="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h3 id="tablaTitulo" class="text-sm font-semibold text-white uppercase tracking-widest">Ranking por Facturación</h3>
+                    <p id="tablaSubtitulo" class="text-xs text-gray-500 mt-0.5">haz clic en una fila para ver detalles</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Search -->
+                    <div class="relative">
+                        <svg class="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input
+                            id="searchEmpresa"
+                            type="text"
+                            placeholder="Buscar empresa…"
+                            oninput="filtrarTablaLocal(this.value)"
+                            class="bg-dark-700 border border-dark-500 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-600 w-48 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 transition"
+                        />
+                    </div>
+                    <!-- Export -->
+                    <button onclick="exportarCSV()" class="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-violet-300 transition-colors px-3 py-2 rounded-lg hover:bg-violet-500/8 border border-transparent hover:border-violet-500/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table class="ranking-table w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/5">
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">#</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Empresa</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Sector</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">CCAA</th>
+                            <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider" id="headerMetrica">Facturación (M€)</th>
+                            <th class="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">Empleados</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankingTable">
+                        <!-- Skeleton rows -->
+                        <tr><td colspan="6" class="px-5 py-16 text-center">
+                            <div class="flex flex-col items-center gap-3 text-gray-600">
+                                <svg class="w-8 h-8 spinning text-violet-600/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                <span class="text-sm">Cargando datos…</span>
+                            </div>
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
+    <footer class="border-t border-white/5 py-8">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+            <p>Rankings de Empresas España · Dashboard Ejecutivo</p>
+            <p id="ultimaActualizacion">Datos actualizados a 2024 · Para datos oficiales consulte BORME y CNMV</p>
+        </div>
+    </footer>
+
+    <!-- ═══════════════════════════════ MODAL ═══════════════════════════════ -->
+    <div id="empresaModal" class="modal-backdrop hidden" onclick="cerrarModal(event)">
+        <div class="modal-content glass-card rounded-2xl p-8 max-w-lg w-full relative" onclick="event.stopPropagation()">
+            <button onclick="cerrarModal()" class="absolute top-5 right-5 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="mb-6">
+                <p class="text-xs text-violet-400 uppercase tracking-widest font-semibold mb-1.5">Detalle de empresa</p>
+                <h2 id="modalNombre" class="font-display text-2xl font-bold text-white"></h2>
+                <p id="modalSector" class="text-gray-400 text-sm mt-1"></p>
+            </div>
+
+            <!-- Key metrics -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="bg-dark-700/60 rounded-xl p-3 text-center">
+                    <div id="modalFacturacion" class="font-display font-bold text-violet-300 text-lg"></div>
+                    <div class="text-xs text-gray-500 mt-0.5">M€ Facturación</div>
+                </div>
+                <div class="bg-dark-700/60 rounded-xl p-3 text-center">
+                    <div id="modalPublicidad" class="font-display font-bold text-cyan-300 text-lg"></div>
+                    <div class="text-xs text-gray-500 mt-0.5">M€ Publicidad</div>
+                </div>
+                <div class="bg-dark-700/60 rounded-xl p-3 text-center">
+                    <div id="modalEmpleados" class="font-display font-bold text-emerald-300 text-lg"></div>
+                    <div class="text-xs text-gray-500 mt-0.5">Empleados</div>
+                </div>
+            </div>
+
+            <!-- Details grid -->
+            <dl id="modalFields" class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm"></dl>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ JAVASCRIPT ═══════════════════════════════ -->
+    <script>
+        // ── State ───────────────────────────────────────────────────────────────
+        let rankingChart = null;
+        let sectorChart  = null;
+        let comunidadChart = null;
+        let currentData = [];
+        let currentFilteredData = [];
+
+        const SECTOR_COLORS = [
+            '#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4',
+            '#d946ef','#84cc16','#f97316','#3b82f6','#ec4899',
+            '#14b8a6','#a855f7','#22c55e','#fb923c','#38bdf8',
+            '#facc15','#f43f5e','#4ade80','#818cf8','#e879f9'
+        ];
+
+        // ── Init ────────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarFiltros();
+            cargarStats();
+            cargarDatos();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') cerrarModal();
+        });
+
+        // ── Stats ────────────────────────────────────────────────────────────────
+        async function cargarStats() {
+            const sector    = document.getElementById('filtroSector').value;
+            const comunidad = document.getElementById('filtroComunidad').value;
+            const params = [];
+            if (sector)    params.push(`sector=${encodeURIComponent(sector)}`);
+            if (comunidad) params.push(`comunidad=${encodeURIComponent(comunidad)}`);
+            const url = '/api/stats' + (params.length ? '?' + params.join('&') : '');
+            try {
+                const data = await fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+
+                animateCounter('statTotal', data.total_empresas);
+                animateCounter('statSectores', data.total_sectores);
+                animateCounter('statComunidades', data.total_comunidades);
+                animateCounterFloat('statFacturacion', data.facturacion_total, ' M€');
+
+                document.getElementById('headerEmpresas').textContent = data.total_empresas.toLocaleString('es-ES');
+                document.getElementById('headerSectores').textContent = data.total_sectores;
+                document.getElementById('headerFacturacion').textContent =
+                    data.facturacion_total.toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' M€';
+
+                // Datos FY2024 publicados en 2025 — convención habitual en rankings españoles
+                document.getElementById('headerYear').textContent = '2025';
+            } catch (e) {
+                mostrarError('No se pudieron cargar las estadísticas. ¿Está el servidor activo?');
+            }
+        }
+
+        // ── Filters ──────────────────────────────────────────────────────────────
+        async function cargarFiltros() {
+            try {
+                const [sectores, comunidades] = await Promise.all([
+                    fetch('/api/filtros/sectores').then(r => r.json()),
+                    fetch('/api/filtros/comunidades').then(r => r.json())
+                ]);
+
+                const sectorSel = document.getElementById('filtroSector');
+                const comunidadSel = document.getElementById('filtroComunidad');
+
+                sectores.forEach(s => {
+                    sectorSel.innerHTML += `<option value="${s}">${s}</option>`;
+                });
+                comunidades.forEach(c => {
+                    comunidadSel.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+            } catch (e) {
+                console.error('Error cargando filtros:', e);
+            }
+        }
+
+        function aplicarFiltros() {
+            document.getElementById('searchEmpresa').value = '';
+            cargarStats();
+            cargarDatos();
+        }
+
+        // ── Main data load ───────────────────────────────────────────────────────
+        async function cargarDatos() {
+            const sector   = document.getElementById('filtroSector').value;
+            const comunidad= document.getElementById('filtroComunidad').value;
+            const tipo     = document.getElementById('tipoRanking').value;
+            const topN     = document.getElementById('topN').value;
+
+            let url = tipo === 'facturacion'
+                ? `/api/ranking/facturacion?limit=${topN}`
+                : `/api/ranking/publicidad?limit=${topN}`;
+
+            if (sector)   url += `&sector=${encodeURIComponent(sector)}`;
+            if (comunidad) url += `&comunidad=${encodeURIComponent(comunidad)}`;
+
+            // Show table loading state
+            document.getElementById('rankingTable').innerHTML = `
+                <tr><td colspan="6" class="px-5 py-12 text-center">
+                    <div class="flex flex-col items-center gap-3 text-gray-600">
+                        <svg class="w-7 h-7 spinning text-violet-600/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span class="text-sm">Cargando…</span>
+                    </div>
+                </td></tr>`;
+
+            try {
+                const data = await fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+                currentData = data;
+                currentFilteredData = data;
+
+                actualizarTabla(data, tipo);
+                actualizarGraficos(data, tipo, sector, comunidad);
+                document.getElementById('ultimaActualizacion').textContent =
+                    `Última actualización: ${new Date().toLocaleString('es-ES')}`;
+            } catch (e) {
+                mostrarError('Error al cargar los datos del ranking.');
+                document.getElementById('rankingTable').innerHTML = `
+                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-600 text-sm">No se pudieron cargar los datos.</td></tr>`;
+            }
+        }
+
+        // ── Table ────────────────────────────────────────────────────────────────
+        function actualizarTabla(data, tipo) {
+            const tipo_label = tipo === 'facturacion' ? 'Facturación (M€)' : 'Inv. Publicidad (M€)';
+            document.getElementById('headerMetrica').textContent = tipo_label;
+            document.getElementById('tablaTitulo').textContent =
+                tipo === 'facturacion' ? 'Ranking por Facturación' : 'Ranking por Inversión en Publicidad';
+
+            if (data.length === 0) {
+                document.getElementById('rankingTable').innerHTML = `
+                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-600 text-sm">Sin resultados para los filtros actuales.</td></tr>`;
+                return;
+            }
+
+            document.getElementById('rankingTable').innerHTML = data.map(item => `
+                <tr onclick="abrirModal(${item.empresa.id})">
+                    <td class="px-5 py-3.5">
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
+                            item.rank === 1 ? 'rank-1 text-white' :
+                            item.rank === 2 ? 'rank-2 text-gray-900' :
+                            item.rank === 3 ? 'rank-3 text-white' :
+                            'bg-dark-600 text-gray-400 border border-white/8'
+                        }">${item.rank}</span>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        <span class="font-semibold text-white">${item.empresa.nombre}</span>
+                        ${item.empresa.provincia ? `<span class="text-gray-600 text-xs ml-2">${item.empresa.provincia}</span>` : ''}
+                    </td>
+                    <td class="px-5 py-3.5 hidden md:table-cell">
+                        ${item.empresa.sector ? `<span class="sector-pill">${item.empresa.sector}</span>` : '<span class="text-gray-600">—</span>'}
+                    </td>
+                    <td class="px-5 py-3.5 text-gray-400 text-sm hidden lg:table-cell">
+                        ${item.empresa.comunidad_autonoma || '—'}
+                    </td>
+                    <td class="px-5 py-3.5 text-right">
+                        <span class="font-bold font-display ${tipo === 'facturacion' ? 'text-emerald-400' : 'text-pink-400'}">
+                            ${item.metrica ? item.metrica.toLocaleString('es-ES', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '—'}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3.5 text-right text-gray-500 hidden xl:table-cell">
+                        ${item.empresa.empleados ? item.empresa.empleados.toLocaleString('es-ES') : '—'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarTablaLocal(query) {
+            const tipo = document.getElementById('tipoRanking').value;
+            if (!query.trim()) {
+                currentFilteredData = currentData;
+            } else {
+                const q = query.toLowerCase();
+                currentFilteredData = currentData.filter(item =>
+                    item.empresa.nombre.toLowerCase().includes(q) ||
+                    (item.empresa.sector || '').toLowerCase().includes(q) ||
+                    (item.empresa.comunidad_autonoma || '').toLowerCase().includes(q)
+                );
+            }
+            actualizarTabla(currentFilteredData, tipo);
+        }
+
+        // ── Charts ───────────────────────────────────────────────────────────────
+        function actualizarGraficos(data, tipo, sectorActivo, comunidadActiva) {
+            const top10 = data.slice(0, 10);
+            const metricaLabel = tipo === 'facturacion' ? 'Facturación (M€)' : 'Inv. Publicidad (M€)';
+
+            document.getElementById('rankingLabel').textContent = `Top ${Math.min(10, top10.length)}`;
+
+            // Chart defaults
+            Chart.defaults.color = '#6b7280';
+            Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+
+            // ─ Top companies (horizontal bar) ─
+            if (rankingChart) { rankingChart.destroy(); rankingChart = null; }
+            rankingChart = new Chart(document.getElementById('rankingChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: top10.map(item => {
+                        const n = item.empresa.nombre;
+                        return n.length > 22 ? n.substring(0, 20) + '…' : n;
+                    }),
+                    datasets: [{
+                        label: metricaLabel,
+                        data: top10.map(item => item.metrica),
+                        backgroundColor: top10.map((_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length] + 'cc'),
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1a28',
+                            borderColor: 'rgba(124,58,237,0.3)',
+                            borderWidth: 1,
+                            titleColor: '#e9d5ff',
+                            bodyColor: '#a1a1aa',
+                            padding: 10,
+                            callbacks: {
+                                label: ctx => ` ${ctx.raw.toLocaleString('es-ES', {maximumFractionDigits:0})} M€`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: { color: '#4b4b6a', font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#c4b5fd', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            // ─ Sector doughnut ─
+            if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+            const sectorParams = [];
+            if (sectorActivo)   sectorParams.push(`sector=${encodeURIComponent(sectorActivo)}`);
+            if (comunidadActiva) sectorParams.push(`comunidad=${encodeURIComponent(comunidadActiva)}`);
+            const sectorUrl = '/api/sectores' + (sectorParams.length ? '?' + sectorParams.join('&') : '');
+
+            fetch(sectorUrl).then(r => r.json()).then(sectores => {
+                if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+                sectorChart = new Chart(document.getElementById('sectorChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: sectores.map(s => s.sector),
+                        datasets: [{
+                            data: sectores.map(s => s.facturacion_total),
+                            backgroundColor: sectores.map((_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length]),
+                            borderWidth: 0,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '62%',
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#9ca3af',
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    padding: 10,
+                                    font: { size: 11 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1a1a28',
+                                borderColor: 'rgba(124,58,237,0.3)',
+                                borderWidth: 1,
+                                titleColor: '#e9d5ff',
+                                bodyColor: '#a1a1aa',
+                                padding: 10,
+                                callbacks: {
+                                    label: ctx => ` ${ctx.raw.toLocaleString('es-ES', {maximumFractionDigits:0})} M€`
+                                }
+                            }
+                        }
+                    }
+                });
+            }).catch(e => console.error('Error cargando sectores:', e));
+
+            // ─ Comunidades (horizontal bar) ─
+            if (comunidadChart) { comunidadChart.destroy(); comunidadChart = null; }
+            const comunidadParams = [];
+            if (sectorActivo)    comunidadParams.push(`sector=${encodeURIComponent(sectorActivo)}`);
+            if (comunidadActiva) comunidadParams.push(`comunidad=${encodeURIComponent(comunidadActiva)}`);
+            const comunidadUrl = '/api/comunidades' + (comunidadParams.length ? '?' + comunidadParams.join('&') : '');
+            fetch(comunidadUrl).then(r => r.json()).then(comunidades => {
+                if (comunidadChart) { comunidadChart.destroy(); comunidadChart = null; }
+                const sorted = [...comunidades].sort((a, b) => b.facturacion_total - a.facturacion_total);
+                comunidadChart = new Chart(document.getElementById('comunidadChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(c => c.comunidad),
+                        datasets: [{
+                            label: 'Facturación (M€)',
+                            data: sorted.map(c => c.facturacion_total),
+                            backgroundColor: sorted.map((_, i) => SECTOR_COLORS[i % SECTOR_COLORS.length] + 'bb'),
+                            borderRadius: 5,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a28',
+                                borderColor: 'rgba(124,58,237,0.3)',
+                                borderWidth: 1,
+                                titleColor: '#e9d5ff',
+                                bodyColor: '#a1a1aa',
+                                padding: 10,
+                                callbacks: {
+                                    label: ctx => ` ${ctx.raw.toLocaleString('es-ES', {maximumFractionDigits:0})} M€`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255,255,255,0.04)' },
+                                ticks: { color: '#4b4b6a', font: { size: 11 } }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { color: '#c4b5fd', font: { size: 11 } }
+                            }
+                        }
+                    }
+                });
+            }).catch(e => console.error('Error cargando comunidades:', e));
+        }
+
+        // ── Refresh (reload DB + re-fetch) ───────────────────────────────────────
+        async function refreshData() {
+            const icon = document.getElementById('refreshIcon');
+            const btn  = document.getElementById('btnRefresh');
+            icon.classList.add('spinning');
+            btn.disabled = true;
+            try {
+                await fetch('/api/admin/reload', { method: 'POST' });
+                await cargarStats();
+                await cargarDatos();
+            } catch (e) {
+                mostrarError('Error al actualizar los datos.');
+            } finally {
+                icon.classList.remove('spinning');
+                btn.disabled = false;
+            }
+        }
+
+        // ── Modal ────────────────────────────────────────────────────────────────
+        async function abrirModal(id) {
+            try {
+                const e = await fetch(`/api/empresas/${id}`).then(r => r.json());
+
+                document.getElementById('modalNombre').textContent = e.nombre;
+                document.getElementById('modalSector').textContent =
+                    [e.sector, e.subsector].filter(Boolean).join(' · ') || '';
+
+                document.getElementById('modalFacturacion').textContent =
+                    e.facturacion ? e.facturacion.toLocaleString('es-ES', {maximumFractionDigits:0}) : '—';
+                const pubVal = e.inversion_publicidad != null
+                    ? e.inversion_publicidad.toLocaleString('es-ES', {maximumFractionDigits:1})
+                    : '—';
+                const pubBadge = e.publicidad_verificada === 'real'
+                    ? '<span class="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">✓ real</span>'
+                    : '<span class="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">~ est.</span>';
+                document.getElementById('modalPublicidad').innerHTML = pubVal + pubBadge;
+                document.getElementById('modalEmpleados').textContent =
+                    e.empleados ? e.empleados.toLocaleString('es-ES') : '—';
+
+                const fields = [
+                    ['CIF',              e.cif],
+                    ['Comunidad',        e.comunidad_autonoma],
+                    ['Provincia',        e.provincia],
+                    ['Año datos',        e.año_facturacion],
+                    ['Fuente facturación', e.fuente],
+                    ['Publicidad',       e.publicidad_verificada === 'real' ? 'Dato real (InfoAdex 2024)' : 'Estimación orientativa'],
+                ];
+                document.getElementById('modalFields').innerHTML = fields.map(([k, v]) => `
+                    <div>
+                        <dt class="text-gray-500 text-xs uppercase tracking-wider font-medium">${k}</dt>
+                        <dd class="text-gray-200 font-medium mt-1 text-sm">${v || '—'}</dd>
+                    </div>
+                `).join('');
+
+                document.getElementById('empresaModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } catch (e) {
+                console.error('Error cargando detalle:', e);
+            }
+        }
+
+        function cerrarModal(event) {
+            if (!event || event.target === document.getElementById('empresaModal')) {
+                document.getElementById('empresaModal').classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // ── Export CSV ───────────────────────────────────────────────────────────
+        function exportarCSV() {
+            if (currentFilteredData.length === 0) return;
+            const tipo = document.getElementById('tipoRanking').value;
+            const headers = ['Rank','Empresa','Sector','Subsector','Comunidad','Provincia','Metrica_M€','Empleados','Fuente'];
+            const csv = [
+                headers.join(','),
+                ...currentFilteredData.map(item => [
+                    item.rank,
+                    `"${item.empresa.nombre}"`,
+                    `"${item.empresa.sector || ''}"`,
+                    `"${item.empresa.subsector || ''}"`,
+                    `"${item.empresa.comunidad_autonoma || ''}"`,
+                    `"${item.empresa.provincia || ''}"`,
+                    item.metrica || '',
+                    item.empresa.empleados || '',
+                    `"${item.empresa.fuente || ''}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `ranking_empresas_${tipo}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // ── Animated counters ────────────────────────────────────────────────────
+        function animateCounter(id, target) {
+            const el = document.getElementById(id);
+            const start = performance.now();
+            const dur = 900;
+            function step(now) {
+                const t = Math.min((now - start) / dur, 1);
+                const ease = 1 - Math.pow(1 - t, 3);
+                el.textContent = Math.round(target * ease).toLocaleString('es-ES');
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function animateCounterFloat(id, target, suffix) {
+            const el = document.getElementById(id);
+            const start = performance.now();
+            const dur = 1000;
+            function step(now) {
+                const t = Math.min((now - start) / dur, 1);
+                const ease = 1 - Math.pow(1 - t, 3);
+                const v = target * ease;
+                el.textContent = v.toLocaleString('es-ES', {maximumFractionDigits: 0}) + suffix;
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        // ── Error display ────────────────────────────────────────────────────────
+        function mostrarError(msg) {
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('errorWrapper').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
