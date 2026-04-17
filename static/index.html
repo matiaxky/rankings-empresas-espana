@@ -197,10 +197,10 @@
                     <p class="text-violet-400 text-xs font-semibold tracking-widest uppercase mb-3">Dashboard Ejecutivo · España</p>
                     <h1 class="font-display leading-tight">
                         <span class="text-white text-4xl md:text-5xl font-semibold">Rankings de Empresas</span>
-                        <span class="block text-transparent bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-4xl md:text-5xl font-semibold mt-1" id="headerYear">2024</span>
+                        <span class="block text-transparent bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-4xl md:text-5xl font-semibold mt-1" id="headerYear">—</span>
                     </h1>
                     <p class="text-gray-500 mt-3 text-sm">
-                        Facturación, inversión publicitaria · Sector y Comunidad Autónoma · <span class="text-gray-600">Datos ejercicio fiscal 2024</span>
+                        Facturación, inversión publicitaria · Sector y Comunidad Autónoma · <span class="text-gray-600">Datos ejercicio fiscal <span id="headerYearLabel">—</span></span>
                     </p>
                 </div>
 
@@ -489,7 +489,7 @@
     <footer class="border-t border-white/5 py-8">
         <div class="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
             <p>Rankings de Empresas España · Dashboard Ejecutivo</p>
-            <p id="ultimaActualizacion">Datos actualizados a 2024 · Para datos oficiales consulte BORME y CNMV</p>
+            <p id="ultimaActualizacion">Para datos oficiales consulte BORME y CNMV</p>
         </div>
     </footer>
 
@@ -577,8 +577,10 @@
                 document.getElementById('headerFacturacion').textContent =
                     data.facturacion_total.toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' M€';
 
-                // Datos FY2024 publicados en 2025 — convención habitual en rankings españoles
-                document.getElementById('headerYear').textContent = '2025';
+                // Año del ejercicio fiscal derivado de los datos reales
+                const año = data.año_facturacion_max || data.año_facturacion_min || '—';
+                document.getElementById('headerYear').textContent = año;
+                document.getElementById('headerYearLabel').textContent = año;
             } catch (e) {
                 mostrarError('No se pudieron cargar las estadísticas. ¿Está el servidor activo?');
             }
@@ -894,18 +896,19 @@
             }).catch(e => console.error('Error cargando comunidades:', e));
         }
 
-        // ── Refresh (reload DB + re-fetch) ───────────────────────────────────────
+        // ── Refresh (enrich DB con scrapers + re-fetch) ──────────────────────────
         async function refreshData() {
             const icon = document.getElementById('refreshIcon');
             const btn  = document.getElementById('btnRefresh');
             icon.classList.add('spinning');
             btn.disabled = true;
             try {
-                await fetch('/api/admin/reload', { method: 'POST' });
+                const r = await fetch('/api/admin/enrich', { method: 'POST' });
+                if (!r.ok) throw new Error(r.status);
                 await cargarStats();
                 await cargarDatos();
             } catch (e) {
-                mostrarError('Error al actualizar los datos.');
+                mostrarError('Error al actualizar los datos. El enriquecimiento puede tardar unos segundos.');
             } finally {
                 icon.classList.remove('spinning');
                 btn.disabled = false;
@@ -941,7 +944,7 @@
                     ['Provincia',        e.provincia],
                     ['Año datos',        e.año_facturacion],
                     ['Fuente facturación', e.fuente],
-                    ['Publicidad',       e.publicidad_verificada === 'real' ? 'Dato real (InfoAdex 2024)' : 'Estimación orientativa'],
+                    ['Publicidad',       e.publicidad_verificada === 'real' ? 'Dato real (InfoAdex)' : 'Estimación orientativa'],
                     ['Calidad del dato', `${qScore}/100 (${qLabel})`],
                 ];
                 document.getElementById('modalFields').innerHTML = fields.map(([k, v]) => `

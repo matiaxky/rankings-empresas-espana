@@ -5,7 +5,7 @@ from datetime import datetime
 
 class EmpresaBase(BaseModel):
     nombre: str
-    cif: str
+    cif: Optional[str] = None
     sector: Optional[str] = None
     subsector: Optional[str] = None
     comunidad_autonoma: Optional[str] = None
